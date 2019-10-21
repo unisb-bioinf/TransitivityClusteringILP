@@ -1,0 +1,14 @@
+# Config file for the MetaPeak package
+#
+# It defines the following variables:
+#  MetaPeak_INCLUDE_DIRS - include directories for GeneTrail2
+#  MetaPeak_LIBRARIES    - libraries to link against
+
+get_filename_component(METAPEAK_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set(MetaPeak_INCLUDE_DIRS "@METAPEAK_LIBRARY_INCLUDE_DIRS@")
+
+if(NOT TARGET metaPeakLib AND NOT MetaPeak_BINARY_DIR)
+	include("${METAPEAK_CMAKE_DIR}/MetaPeak2Targets.cmake")
+endif()
+
+set(MetaPeak_LIBRARIES "@METAPEAK_AVAILABLE_LIBRARIES@")
