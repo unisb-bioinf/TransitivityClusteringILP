@@ -32,7 +32,8 @@ class ShiftedEuclideanDistanceForGradientsAndPoints
         template <typename Iterator>
         double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
         {       
-                return Distance::shifted_euclidean_distance_for_gradients_and_points<double>(first_begin, first_end, second_begin, second_end);
+                double dist = Distance::shifted_euclidean_distance_for_gradients_and_points<double>(first_begin, first_end, second_begin, second_end);
+		return 1 / (1 + dist);
         }
 };
 
