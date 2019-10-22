@@ -20,10 +20,11 @@ function(add_gtest TEST_NAME)
 
     # Setup the executable
     add_executable(${TEST_NAME} "${TEST_NAME}.cpp" ${MY_ARGS_SOURCE_FILES})
-    target_link_libraries(${TEST_NAME} gtest gtest_main test_driver ${MY_ARGS_LIBRARIES})
+    target_link_libraries(${TEST_NAME} gtest gtest_main test_driver ${MY_ARGS_LIBRARIES} ${TRANSITIVITY_CLUSTERING_ILP_DEP_LIBRARIES})
 
     target_include_directories(${TEST_NAME} PRIVATE
         ${Boost_INCLUDE_DIRS}
+	${EIGEN3_INCLUDE_DIR}
     )
     COMPILE_FLAGS(${TEST_NAME})
 
