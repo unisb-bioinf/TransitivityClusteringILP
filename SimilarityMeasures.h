@@ -26,6 +26,49 @@ class SpearmanCorrelation
         }
 };
 
+class DistanceCorrelation
+{ 
+  public:
+        template <typename Iterator>
+        double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
+        {       
+                return Distance::distance_correlation<double>(first_begin, first_end, second_begin, second_end);
+        }
+};
+
+class EuclideanDistance
+{ 
+  public:
+        template <typename Iterator>
+        double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
+        {       
+                double dist = Distance::euclidean_distance<double>(first_begin, first_end, second_begin, second_end);
+		return 1 / (1 + dist);
+        }
+};
+
+class ShiftedEuclideanDistanceForPoints
+{ 
+  public:
+        template <typename Iterator>
+        double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
+        {       
+                double dist = Distance::shifted_euclidean_distance_for_points<double>(first_begin, first_end, second_begin, second_end);
+		return 1 / (1 + dist);
+        }
+};
+
+class ShiftedEuclideanDistanceForGradients
+{ 
+  public:
+        template <typename Iterator>
+        double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
+        {       
+                double dist = Distance::shifted_euclidean_distance_for_gradients<double>(first_begin, first_end, second_begin, second_end);
+		return 1 / (1 + dist);
+        }
+};
+
 class ShiftedEuclideanDistanceForGradientsAndPoints
 { 
   public:

@@ -18,6 +18,8 @@
 
 #include "macros.h"
 
+#include "DenseMatrix.h"
+
 namespace TransitivityClusteringILP
 {
 
@@ -40,7 +42,7 @@ namespace Distance
 template <typename value_type, typename InputIterator>
 value_type
 mean_difference(InputIterator first_begin, InputIterator first_end,
-                     InputIterator second_begin, InputIterator second_end)
+                     InputIterator second_begin, InputIterator)
 {
 	value_type n = (value_type)std::distance(first_begin, first_end);
 	value_type diff = 0;
@@ -63,7 +65,7 @@ mean_difference(InputIterator first_begin, InputIterator first_end,
 template <typename value_type, typename InputIterator>
 value_type
 squared_distance(InputIterator first_begin, InputIterator first_end,
-                     InputIterator second_begin, InputIterator second_end)
+                     InputIterator second_begin, InputIterator)
 {
 	value_type n = (value_type)std::distance(first_begin, first_end);
 	value_type dist = 0;
@@ -172,6 +174,110 @@ shifted_euclidean_distance_for_gradients_and_points(InputIterator first_begin, I
 
 	return 	shifted_euclidean_distance_for_points<value_type>(first_begin, first_end, second_begin, second_end) +
 		shifted_euclidean_distance_for_gradients<value_type>(first_begin, first_end, second_begin, second_end);
+}
+
+template <typename value_type, typename InputIterator>
+GeneTrail::DenseMatrix pairwise_distance(InputIterator begin, InputIterator end) {
+	std::vector<value_type> x(begin, end);
+	GeneTrail::DenseMatrix dist(x.size(), x.size());
+	for(size_t i=0; i<x.size(); ++i){
+                dist.set(i, i, 0.0);
+                for(size_t j=i+1; j<x.size(); ++j){
+			value_type diff = x[i] - x[j];
+			dist(i, j) = std::sqrt(diff*diff);
+			dist(j, i) = dist(i, j);
+		}
+	}
+	return std::move(dist);
+}
+
+GeneTrail::DenseMatrix normalize_distances(GeneTrail::DenseMatrix& A) {
+	double n = (double)A.rows();
+	double mean = 0.0;
+	std::vector<double> row_means(A.rows(), 0.0);	
+	std::vector<double> col_means(A.cols(), 0.0);
+	for(size_t i=0; i<A.rows(); ++i){
+		for(size_t j=0; j<A.cols(); ++j){
+			mean += A(i,j);
+			row_means[i] += A(i,j);
+			col_means[j] += A(i,j);
+		}
+	}
+	mean /= n*n;
+	for(size_t i=0; i<n; ++i){
+		row_means[i] /= n;
+		col_means[i] /= n;
+	}
+	for(size_t i=0; i<A.rows(); ++i){
+		for(size_t j=0; j<A.cols(); ++j){
+			A(i,j) = A(i,j) - row_means[i] - col_means[j] + mean;
+		}
+	}
+	return A;
+}
+
+/**
+ * This methods implements the distance covariance.
+ *
+ * @return Distance
+ */
+template <typename value_type>
+value_type distance_covariance(GeneTrail::DenseMatrix& A, GeneTrail::DenseMatrix& B)
+{
+	double n = (double)A.rows();
+	value_type cov = 0.0;
+	for(size_t i=0; i<A.rows(); ++i){
+		for(size_t j=0; j<A.cols(); ++j){
+			cov += A(i,j)*B(i,j);
+		}
+	}
+	cov /= n*n;
+	return(std::sqrt(cov));
+}
+
+/**
+ * This methods implements the distance correlation.
+ *
+ * @param first_begin  InputIterator corresponding to the start of the first group.
+ * @param first_end    InputIterator corresponding to the end of the first group.
+ * @param second_begin InputIterator corresponding to the start of the second group.
+ * @param second_end   InputIterator corresponding to the end of the second group.
+ *
+ * @return Distance
+ */
+template <typename value_type, typename InputIterator>
+value_type distance_covariance(InputIterator first_begin, InputIterator first_end,
+                     InputIterator second_begin, InputIterator second_end)
+{
+	GeneTrail::DenseMatrix A = pairwise_distance<value_type>(first_begin, first_end);
+	A = normalize_distances(A);
+	GeneTrail::DenseMatrix B = pairwise_distance<value_type>(second_begin, second_end);
+	B = normalize_distances(B);
+	return distance_covariance<value_type>(A, B);
+}
+
+/**
+ * This methods implements the distance correlation.
+ *
+ * @param first_begin  InputIterator corresponding to the start of the first group.
+ * @param first_end    InputIterator corresponding to the end of the first group.
+ * @param second_begin InputIterator corresponding to the start of the second group.
+ * @param second_end   InputIterator corresponding to the end of the second group.
+ *
+ * @return Distance
+ */
+template <typename value_type, typename InputIterator>
+value_type distance_correlation(InputIterator first_begin, InputIterator first_end,
+                     InputIterator second_begin, InputIterator second_end)
+{
+	GeneTrail::DenseMatrix A = pairwise_distance<value_type>(first_begin, first_end);
+	A = normalize_distances(A);
+	GeneTrail::DenseMatrix B = pairwise_distance<value_type>(second_begin, second_end);
+	B = normalize_distances(B);
+	double cov = distance_covariance<value_type>(A, B);
+	double varA = distance_covariance<value_type>(A, A);
+	double varB = distance_covariance<value_type>(B, B);
+	return cov / std::sqrt(varA * varB);
 }
 
 }
