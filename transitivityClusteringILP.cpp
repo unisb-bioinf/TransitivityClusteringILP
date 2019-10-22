@@ -44,6 +44,8 @@ bool parseArguments(int argc, char* argv[])
 template<typename SimilarityMeasure>
 DenseMatrix compute_similarity_matrix(const DenseMatrix& matrix, SimilarityMeasure meas) {
 	DenseMatrix dist(matrix.rows(), matrix.rows());
+	dist.setRowNames(matrix.rowNames());
+	dist.setColNames(matrix.colNames());
 	for(size_t i=0; i<matrix.rows(); ++i){
 		dist.set(i, i, 1.0);
 		for(size_t j=i+1; j<matrix.rows(); ++j){
