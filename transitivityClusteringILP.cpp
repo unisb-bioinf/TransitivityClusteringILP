@@ -5,8 +5,8 @@
 #include "DenseMatrixReader.h"
 #include "DenseMatrix.h"
 #include "matrixTools.h"
-#include "Distance.h"
 #include "MatrixIterator.h"
+#include "SimilarityMeasures.h"
 
 using namespace GeneTrail;
 namespace bpo = boost::program_options;
@@ -41,25 +41,34 @@ bool parseArguments(int argc, char* argv[])
 	return true;
 }
 
-
-DenseMatrix compute_similarity_matrix(const DenseMatrix& matrix) {
+template<typename SimilarityMeasure>
+DenseMatrix compute_similarity_matrix(const DenseMatrix& matrix, SimilarityMeasure meas) {
 	DenseMatrix dist(matrix.rows(), matrix.rows());
 	for(size_t i=0; i<matrix.rows(); ++i){
 		dist.set(i, i, 1.0);
 		for(size_t j=i+1; i<matrix.rows(); ++i){
 			RowMajorMatrixIterator<Matrix> iit(&matrix, i), jit(&matrix, j);
-			double d = TransitivityClusteringILP::Distance::shifted_euclidean_distance_for_gradients_and_points<double>(
+			double d = meas.compute_similarity(
 				iit->begin(),
 				iit->end(),
 				jit->begin(),
 				jit->end()
 			);
-			dist.set(i, j, 1.0 - (1.0 / d));
-			dist.set(j, i, )
-			std::cout << i << " " << j  << " " << 1.0 / (1.0 + d) << std::endl; 
+			dist.set(i, j, d);
+			dist.set(j, i, d);
 		}
 	}
 	return std::move(dist);
+}
+
+DenseMatrix compute_similarity_matrix(const DenseMatrix& matrix, const std::string& similatity_measure) {
+	if(similatity_measure == "pearson-correlation") {
+		return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::PearsonCorrelation()));
+	} else if(similatity_measure == "spearman-correlation") {
+                return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::SpearmanCorrelation()));
+        } else {
+                return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::ShiftedEuclideanDistanceForGradientsAndPoints()));
+        }
 }
 
 int main(int argc, char* argv[])
@@ -86,7 +95,7 @@ int main(int argc, char* argv[])
 	}
 
 	std::cout << "INFO: Calculating similatiry matrix" << std::endl;
-	compute_similarity_matrix(matrix);
+	compute_similarity_matrix(matrix, similarity_measure_);
 
 	return 0;
 }

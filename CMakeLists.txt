@@ -103,14 +103,16 @@ add_library(clustLib SHARED
     DenseColumnSubset.cpp                                                                                                                                                                                                                          
     DenseColumnSubset.h                                                                                                                                                                                                                            
     DenseRowSubset.cpp                                                                                                                                                                                                                             
-    DenseRowSubset.h                                                                                                                                                                                                                               
+    DenseRowSubset.h
+    Distance.h                                                                                                                                                                                                                              
     Exception.cpp
     Exception.h
     MatrixIterator.h                                                                                                                                                                                                                              
     MatrixWriter.cpp                                                                                                                                                                                                                               
     MatrixWriter.h 
     matrixTools.cpp
-    matrixTools.h 
+    matrixTools.h
+    Statistic.h
 )
 
 COMPILE_FLAGS(clustLib)
