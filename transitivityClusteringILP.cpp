@@ -45,7 +45,7 @@ template<typename SimilarityMeasure>
 DenseMatrix compute_similarity_matrix(const DenseMatrix& matrix, SimilarityMeasure meas) {
 	DenseMatrix dist(matrix.rows(), matrix.rows());
 	dist.setRowNames(matrix.rowNames());
-	dist.setColNames(matrix.colNames());
+	dist.setColNames(matrix.rowNames());
 	for(size_t i=0; i<matrix.rows(); ++i){
 		dist.set(i, i, 1.0);
 		for(size_t j=i+1; j<matrix.rows(); ++j){
@@ -78,6 +78,10 @@ DenseMatrix compute_similarity_matrix(const DenseMatrix& matrix, const std::stri
                 return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::ShiftedEuclideanDistanceForGradients()));
         } else if (similatity_measure == "shifted-euclidean-distance-for-gradients-and-points"){
                 return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::ShiftedEuclideanDistanceForGradientsAndPoints()));
+        } else if (similatity_measure == "dynamic-time-warping"){
+                return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::DynamicTimeWarping()));
+        } else if (similatity_measure == "dynamic-time-warping-for-gradients"){
+                return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::DynamicTimeWarpingForGradients()));
         } else {
 		return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::PearsonCorrelation()));
 	}

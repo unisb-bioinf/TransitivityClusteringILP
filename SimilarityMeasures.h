@@ -80,6 +80,28 @@ class ShiftedEuclideanDistanceForGradientsAndPoints
         }
 };
 
+class DynamicTimeWarping
+{ 
+  public:
+        template <typename Iterator>
+        double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
+        {       
+                double dist = Distance::dynamic_time_warping<double>(first_begin, first_end, second_begin, second_end);
+		return 1 / (1 + dist);
+        }
+};
+
+class DynamicTimeWarpingForGradients
+{ 
+  public:
+        template <typename Iterator>
+        double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
+        {       
+                double dist = Distance::dynamic_time_warping_for_gradients<double>(first_begin, first_end, second_begin, second_end);
+		return 1 / (1 + dist);
+        }
+};
+
 }
 
 #endif // SIMILARITY_MEASURES_H

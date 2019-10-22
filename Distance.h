@@ -280,6 +280,73 @@ value_type distance_correlation(InputIterator first_begin, InputIterator first_e
 	return cov / std::sqrt(varA * varB);
 }
 
+/**
+ * This methods implements the Dynamic Time Warping Distance Measure.
+ *
+ * @param first_begin  InputIterator corresponding to the start of the first group.
+ * @param first_end    InputIterator corresponding to the end of the first group.
+ * @param second_begin InputIterator corresponding to the start of the second group.
+ * @param second_end   InputIterator corresponding to the end of the second group.
+ *
+ * @return Distance
+ */
+template <typename value_type, typename InputIterator>
+value_type dynamic_time_warping(InputIterator first_begin, InputIterator first_end,
+                     InputIterator second_begin, InputIterator second_end)
+{
+	std::vector<double> x(first_begin, first_end);
+	std::vector<double> y(second_begin, second_end);
+	GeneTrail::DenseMatrix DTW(x.size(), y.size());
+	DTW(0,0) = 0.0;
+	for(size_t i=0; i<x.size(); ++i) {
+                for(size_t j=0; j<y.size(); ++j) {
+                        double cost = abs(x[i]-y[j]);
+                        if(i == 0 && j == 0) continue;
+                        if(i == 0) {
+                                DTW(i,j) = cost + DTW(i, j-1);
+                        } else if(j == 0) {
+                                DTW(i,j) = cost + DTW(i-1, j);
+                        } else {
+                                DTW(i,j) = cost + std::min(DTW(i-1, j), std::min(DTW(i, j-1), DTW(i-1, j-1)));
+                        }
+                }
+        }
+        return DTW(x.size()-1, y.size()-1);
+}
+
+/**
+ * This methods implements the Dynamic Time Warping Distance Measure (for gradients).
+ *
+ * @param first_begin  InputIterator corresponding to the start of the first group.
+ * @param first_end    InputIterator corresponding to the end of the first group.
+ * @param second_begin InputIterator corresponding to the start of the second group.
+ * @param second_end   InputIterator corresponding to the end of the second group.
+ *
+ * @return Distance
+ */
+template <typename value_type, typename InputIterator>
+value_type dynamic_time_warping_for_gradients(InputIterator first_begin, InputIterator first_end,
+                     InputIterator second_begin, InputIterator second_end)
+{
+	std::vector<double> x(first_begin, first_end);
+	std::vector<double> y(second_begin, second_end);
+	GeneTrail::DenseMatrix DTW(x.size()-1, y.size()-1);
+	DTW(0,0) = 0.0;
+	for(size_t i=0; i<x.size()-1; ++i) {
+                for(size_t j=0; j<y.size()-1; ++j) {
+                        double cost = abs((x[i+1]-x[i])-(y[j+1]-y[j]));
+                        if(i == 0 && j == 0) continue;
+                        if(i == 0) {
+                                DTW(i,j) = cost + DTW(i, j-1);
+                        } else if(j == 0) {
+                                DTW(i,j) = cost + DTW(i-1, j);
+                        } else {
+                                DTW(i,j) = cost + std::min(DTW(i-1, j), std::min(DTW(i, j-1), DTW(i-1, j-1)));
+                        }
+                }
+        }
+        return DTW(x.size()-2, y.size()-2);
+}
 }
 }
 
