@@ -176,6 +176,14 @@ shifted_euclidean_distance_for_gradients_and_points(InputIterator first_begin, I
 		shifted_euclidean_distance_for_gradients<value_type>(first_begin, first_end, second_begin, second_end);
 }
 
+/**
+ * This methods calculates the pairwise euclidean distance for all points in a given range.
+ *
+ * @param begin  InputIterator corresponding to the start of the first group.
+ * @param end    InputIterator corresponding to the end of the first group.
+ *
+ * @return Distance matrix
+ */
 template <typename value_type, typename InputIterator>
 GeneTrail::DenseMatrix pairwise_distance(InputIterator begin, InputIterator end) {
 	std::vector<value_type> x(begin, end);
@@ -191,6 +199,14 @@ GeneTrail::DenseMatrix pairwise_distance(InputIterator begin, InputIterator end)
 	return std::move(dist);
 }
 
+/**
+ * This methods normalizes a distance matrix.
+ *
+ * @param begin  InputIterator corresponding to the start of the first group.
+ * @param end    InputIterator corresponding to the end of the first group.
+ *
+ * @return Normalized distance matrix
+ */
 GeneTrail::DenseMatrix normalize_distances(GeneTrail::DenseMatrix& A) {
 	double n = (double)A.rows();
 	double mean = 0.0;
@@ -218,6 +234,9 @@ GeneTrail::DenseMatrix normalize_distances(GeneTrail::DenseMatrix& A) {
 
 /**
  * This methods implements the distance covariance.
+ *
+ * @param A Normalized distance matrix
+ * @param B Normalized distance matrix
  *
  * @return Distance
  */

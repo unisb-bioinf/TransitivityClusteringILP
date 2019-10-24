@@ -12,6 +12,7 @@ using namespace GeneTrail;
 namespace bpo = boost::program_options;
 
 std::string matrix_ = "", similarity_measure_ = "";
+bool isDistanceMatrix;
 
 MatrixReaderOptions matrixOptions;
 
@@ -22,6 +23,7 @@ bool parseArguments(int argc, char* argv[])
 
 	desc.add_options()("help,h", "Display this message")
 		("matrix,m", bpo::value<std::string>(&matrix_)->required(), "Name of a text file containing expression values as a matrix.")
+		("distance,d", bpo::value<bool>(&isDistanceMatrix)->default_value(false)->zero_tokens(), "The matrix already is a distance matrix.")
 		("no-row-names,r", bpo::value<bool>(&matrixOptions.no_rownames)->default_value(false)->zero_tokens(), "Does the file contain row names.")
 		("no-col-names,c", bpo::value<bool>(&matrixOptions.no_colnames)->default_value(false)->zero_tokens(), "Does the file contain column names.")
 		("add-col-name,a", bpo::value<bool>(&matrixOptions.additional_colname)->default_value(false)->zero_tokens(), "File containing two lines specifying which rownames belong to which group.")
@@ -109,9 +111,11 @@ int main(int argc, char* argv[])
 		std::cerr << "ERROR: Could not open input data matrix for reading." << std::endl;
 		return -4;
 	}
-
-	std::cout << "INFO: Calculating similatiry matrix" << std::endl;
-	compute_similarity_matrix(matrix, similarity_measure_);
+	
+	if(!isDistanceMatrix) {
+		std::cout << "INFO: Calculating similatiry matrix" << std::endl;
+		compute_similarity_matrix(matrix, similarity_measure_);
+	}
 
 	return 0;
 }
