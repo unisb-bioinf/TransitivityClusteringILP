@@ -12,6 +12,7 @@ using namespace GeneTrail;
 namespace bpo = boost::program_options;
 
 std::string matrix_ = "", similarity_measure_ = "";
+bool isDistanceMatrix;
 
 MatrixReaderOptions matrixOptions;
 
@@ -22,10 +23,11 @@ bool parseArguments(int argc, char* argv[])
 
 	desc.add_options()("help,h", "Display this message")
 		("matrix,m", bpo::value<std::string>(&matrix_)->required(), "Name of a text file containing expression values as a matrix.")
+		("distance,d", bpo::value<bool>(&isDistanceMatrix)->default_value(false)->zero_tokens(), "The matrix already is a distance matrix.")
 		("no-row-names,r", bpo::value<bool>(&matrixOptions.no_rownames)->default_value(false)->zero_tokens(), "Does the file contain row names.")
 		("no-col-names,c", bpo::value<bool>(&matrixOptions.no_colnames)->default_value(false)->zero_tokens(), "Does the file contain column names.")
 		("add-col-name,a", bpo::value<bool>(&matrixOptions.additional_colname)->default_value(false)->zero_tokens(), "File containing two lines specifying which rownames belong to which group.")
-		("similarity-measure,s", bpo::value<std::string>(&similarity_measure_)->required(), "Method used to compute pairwise similarities.");
+		("similarity-measure,s", bpo::value<std::string>(&similarity_measure_)->default_value("spearman-correlation"), "Method used to compute pairwise similarities.");
 	try
 	{
 		bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
@@ -44,9 +46,11 @@ bool parseArguments(int argc, char* argv[])
 template<typename SimilarityMeasure>
 DenseMatrix compute_similarity_matrix(const DenseMatrix& matrix, SimilarityMeasure meas) {
 	DenseMatrix dist(matrix.rows(), matrix.rows());
+	dist.setRowNames(matrix.rowNames());
+	dist.setColNames(matrix.rowNames());
 	for(size_t i=0; i<matrix.rows(); ++i){
 		dist.set(i, i, 1.0);
-		for(size_t j=i+1; i<matrix.rows(); ++i){
+		for(size_t j=i+1; j<matrix.rows(); ++j){
 			RowMajorMatrixIterator<Matrix> iit(&matrix, i), jit(&matrix, j);
 			double d = meas.compute_similarity(
 				iit->begin(),
@@ -64,11 +68,25 @@ DenseMatrix compute_similarity_matrix(const DenseMatrix& matrix, SimilarityMeasu
 DenseMatrix compute_similarity_matrix(const DenseMatrix& matrix, const std::string& similatity_measure) {
 	if(similatity_measure == "pearson-correlation") {
 		return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::PearsonCorrelation()));
-	} else if(similatity_measure == "spearman-correlation") {
+	} else if (similatity_measure == "spearman-correlation") {
                 return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::SpearmanCorrelation()));
-        } else {
+        } else if (similatity_measure == "distance-correlation") {
+		return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::DistanceCorrelation()));
+	} else if (similatity_measure == "euclidean-distance") {
+                return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::EuclideanDistance()));
+        } else if (similatity_measure == "shifted-euclidean-distance-for-points") {
+		return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::ShiftedEuclideanDistanceForPoints()));
+	} else if (similatity_measure == "shifted-euclidean-distance-for-gradients") {
+                return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::ShiftedEuclideanDistanceForGradients()));
+        } else if (similatity_measure == "shifted-euclidean-distance-for-gradients-and-points"){
                 return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::ShiftedEuclideanDistanceForGradientsAndPoints()));
-        }
+        } else if (similatity_measure == "dynamic-time-warping"){
+                return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::DynamicTimeWarping()));
+        } else if (similatity_measure == "dynamic-time-warping-for-gradients"){
+                return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::DynamicTimeWarpingForGradients()));
+        } else {
+		return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::PearsonCorrelation()));
+	}
 }
 
 int main(int argc, char* argv[])
@@ -93,9 +111,11 @@ int main(int argc, char* argv[])
 		std::cerr << "ERROR: Could not open input data matrix for reading." << std::endl;
 		return -4;
 	}
-
-	std::cout << "INFO: Calculating similatiry matrix" << std::endl;
-	compute_similarity_matrix(matrix, similarity_measure_);
+	
+	if(!isDistanceMatrix) {
+		std::cout << "INFO: Calculating similatiry matrix" << std::endl;
+		compute_similarity_matrix(matrix, similarity_measure_);
+	}
 
 	return 0;
 }
