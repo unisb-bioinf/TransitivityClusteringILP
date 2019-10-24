@@ -21,7 +21,11 @@ class ClusteringILP{
 
     bool valid_input;
     double threshold;
-    Metric sim_or_dist;//specify whether similarity or distance measure was used to create the 'similarity_matrix'
+
+public:
+    enum Metric{similarity, distance};
+private:
+    ClusteringILP::Metric sim_or_dist;//specify whether similarity or distance measure was used to create the 'similarity_matrix'
     GeneTrail::DenseMatrix similarity_matrix;//can be a similarity or distance matrix depending on setting
     GeneTrail::DenseMatrix connectivity_matrix;
 
@@ -42,7 +46,6 @@ class ClusteringILP{
     auto doubleEpsilonEqual(double a, double b) -> bool;
 
 public:
-    Enum Metric{similarity, distance};
 
     ClusteringILP(GeneTrail::DenseMatrix & similarity_matrix, double threshold, Metric sim_or_dist);
     ~ClusteringILP();
@@ -53,7 +56,7 @@ public:
 
     auto buildModel() -> bool;
     auto solveModel() -> void;
-    auto getSolution(GeneTrail::DenseMatrix & output_mtx) -> void;
+    auto getSolution(GeneTrail::DenseMatrix & output_mtx) -> void;//output matrix must have the same dimensions as similarity matrix
 };
 
 

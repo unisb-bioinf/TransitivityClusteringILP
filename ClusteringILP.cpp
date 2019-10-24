@@ -70,7 +70,7 @@ auto ClusteringILP::getIndexUpperTriangle(unsigned int row, unsigned int column,
     return (number_of_elements -2)*row + column -1 - (row*(row-1))/2;
 }
 
-auto ClusteringILP::doubleEpsilonEqual(double a, double b){
+auto ClusteringILP::doubleEpsilonEqual(double a, double b) -> bool{
 
     double epsilon(0.1);
 
@@ -78,19 +78,19 @@ auto ClusteringILP::doubleEpsilonEqual(double a, double b){
 }
 
 
-auto ClusteringILP::buildModel() -> void{
+auto ClusteringILP::buildModel() -> bool{
 
     if(!valid_input){
         std::cout << "Please check your input parameters for validity. Calculation not possible." << std::endl;
-        return;
+        return false;
     }
 
     //Defining y_ij and z_ij using only a 1D array structure
 
-    unsigned int number_of_elements(getIndexUpperTriangle(connectivity_matrix.rows()-2, connectivity_matrix.rows()-1)+1);
+    unsigned int number_of_elements_whole_matrix(getIndexUpperTriangle(connectivity_matrix.rows()-2, connectivity_matrix.rows()-1, connectivity_matrix.rows())+1);
 
-    y_ij = IloNumVarArray(env,number_of_elements);
-    z_ij = IloNumVarArray(env, number_of_elements);
+    y_ij = IloNumVarArray(env,number_of_elements_whole_matrix);
+    z_ij = IloNumVarArray(env, number_of_elements_whole_matrix);
 
     for(unsigned int i = 0; i< connectivity_matrix.rows()-1; i++){
 
@@ -99,7 +99,7 @@ auto ClusteringILP::buildModel() -> void{
             unsigned int mat_index(getIndexUpperTriangle(i,j,connectivity_matrix.rows()));
 
             std::string variable_namey{"y" + name_delim_cplex + connectivity_matrix.rowName(i) + name_delim_cplex + connectivity_matrix.colName(j)};
-            std::string variable_namenz{"z" + name_delim_cplex + connectivity_matrix.rowName(i) + name_delim_cplex + connectivity_matrix.colName(j)};
+            std::string variable_namez{"z" + name_delim_cplex + connectivity_matrix.rowName(i) + name_delim_cplex + connectivity_matrix.colName(j)};
 
             y_ij[mat_index] = IloBoolVar(env, variable_namey.c_str());
             z_ij[mat_index] = IloBoolVar(env, variable_namez.c_str());
@@ -108,7 +108,7 @@ auto ClusteringILP::buildModel() -> void{
 
 
     //Constraints for y_ij and z_ij
-    for(unsigned int i = 0; i< connectivity_matrix.rows()-1; i++){
+    for(unsigned int i = 0; i< connectivity_matrix.rows(); i++){
 
         for(unsigned int j = i+1; j< connectivity_matrix.rows(); j++){
 
@@ -116,7 +116,7 @@ auto ClusteringILP::buildModel() -> void{
 
             IloExpr expr(env);
             expr += y_ij[mat_index];
-            model.add(y_ij <= round(connectivity_matrix(i,j)));
+            model.add(y_ij[mat_index] <= round(connectivity_matrix(i,j)));
             expr.end();
 
 
@@ -130,14 +130,14 @@ auto ClusteringILP::buildModel() -> void{
 
     //Further constraints for z_ij
 
-    for(unsigned int i = 0; i< connectivity_matrix.rows()-1; i++){
+    for(unsigned int i = 0; i< connectivity_matrix.rows(); i++){
 
         for(unsigned int j = i+1; j< connectivity_matrix.rows(); j++){
 
             for(unsigned int k = j+1; k< connectivity_matrix.rows(); k++){
 
 
-                if(doubleEpsilonEqual(connectivity_matrix(i,j), 1.0) && doubleEpsilonEqual(connectivity_matrix(j,k), 1.0) && doubleEpsilonEqual(connectivity_matrix(i,k))){//is that correct?
+                if(doubleEpsilonEqual(connectivity_matrix(i,j), 1.0) && doubleEpsilonEqual(connectivity_matrix(j,k), 1.0) && doubleEpsilonEqual(connectivity_matrix(i,k), 1.0)){//is that correct?
 
                     unsigned int mat_index_ij(getIndexUpperTriangle(i,j, connectivity_matrix.rows()));
                     unsigned int mat_index_jk(getIndexUpperTriangle(j,k, connectivity_matrix.rows()));
@@ -159,21 +159,134 @@ auto ClusteringILP::buildModel() -> void{
                     model.add(expr_three3 <=1);
                     expr_three3.end();
                 }
-                else{
-                    un
+                else if(doubleEpsilonEqual(connectivity_matrix(i,j), 1.0) && doubleEpsilonEqual(connectivity_matrix(j,k), 1.0)){
+                    unsigned int mat_index_ij(getIndexUpperTriangle(i,j, connectivity_matrix.rows()));
+                    unsigned int mat_index_jk(getIndexUpperTriangle(j,k, connectivity_matrix.rows()));
+
+                    //Only one expression needed that ensures that only one edge is taken
+
+                    IloExpr expr_one(env);
+                    expr_one = z_ij[mat_index_ij] + z_ij[mat_index_jk];
+                    model.add(expr_one <=1);
+                    expr_one.end();
                 }
-                IloExpr expr_
+                else if(doubleEpsilonEqual(connectivity_matrix(i,j), 1.0) && doubleEpsilonEqual(connectivity_matrix(i,k), 1.0)){
+                    unsigned int mat_index_ij(getIndexUpperTriangle(i,j, connectivity_matrix.rows()));
+                    unsigned int mat_index_ik(getIndexUpperTriangle(i,k, connectivity_matrix.rows()));
+
+                    IloExpr expr_one2(env);
+                    expr_one2 = z_ij[mat_index_ij] + z_ij[mat_index_ik];
+                    model.add(expr_one2 <=1);
+                    expr_one2.end();
+                }
+                else if(doubleEpsilonEqual(connectivity_matrix(j,k), 1.0) && doubleEpsilonEqual(connectivity_matrix(i,k), 1.0)){
+                    unsigned int mat_index_jk(getIndexUpperTriangle(j,k, connectivity_matrix.rows()));
+                    unsigned int mat_index_ik(getIndexUpperTriangle(i,k, connectivity_matrix.rows()));
+
+                    IloExpr expr_one3(env);
+                    expr_one3 = z_ij[mat_index_jk] + z_ij[mat_index_ik];
+                    model.add(expr_one3 <=1);
+                    expr_one3.end();
+                }
             }
         }
     }
+
+
+    //Objective function
+    IloExpr obj(env);
+
+    for(unsigned int i = 0; i< connectivity_matrix.rows(); i++){
+        for(unsigned int j = i+1; j< connectivity_matrix.rows(); j++){
+
+            unsigned int mat_index_ij(getIndexUpperTriangle(i,j, connectivity_matrix.rows()));
+
+            if(sim_or_dist == similarity){
+                obj += y_ij[mat_index_ij] * similarity_matrix(i,j);
+            }
+            else{
+                obj += y_ij[mat_index_ij] * (1.0/1.0 + similarity_matrix(i,j));
+            }
+        }
+    }
+
+    model.add(IloMinimize(env, obj));
+
+    return true;
 }
 
-auto ClusteringILP::solveModel() {
+auto ClusteringILP::solveModel() -> void {
 
+    cplex.extract(model);
+
+    //Running on testosterone?
+    cplex.setParam(IloCplex::Threads, 32); //max number of threads
+    cplex.setParam(IloCplex::ParallelMode, 1); //deterministic calculations enforced
+
+    bool feasible{false};
+
+    try{
+
+        feasible = cplex.solve();
+        std::cout << "ILP successfully solved" << std::endl;
+
+    }
+    catch(IloException & e){
+        std::cout << "CPLEX raised an exception" << std::endl;
+        std::cout << e << std::endl;
+        e.end();
+
+    }
+    catch(std::exception & e){
+        std::cout << "Exception occurred" << std::endl;
+        std::cout << e.what() << std::endl;
+    }
+
+    if(!feasible){
+        std::cout << "ILP was not feasible, additional information is written to Not_feasible.txt" << std::endl;
+        std::ofstream output("Not_feasible.txt");
+        output << "ILP was not feasible" << std::endl;
+        output << "Status\t" << cplex.getStatus() << std::endl;
+        output << "Solver Status\t" << cplex.getCplexStatus() << std::endl;
+        output.close();
+    }
+    else{
+        std::cout << "ILP was feasible" << std::endl;
+        std::ofstream sol_info("Feasible.txt");
+        sol_info << "ILP was feasible" << std::endl;
+        sol_info << "Status\t" << cplex.getStatus() << std::endl;
+        sol_info << "Solver Status\t" << cplex.getCplexStatus() << std::endl;
+        sol_info.close();
+        //Solution as is by cplex
+        cplex.writeSolution("Solution.sol");
+
+    }
 
 }
 
-auto ClusteringILP::getSolution(GeneTrail::DenseMatrix &output_mtx) {
+auto ClusteringILP::getSolution(GeneTrail::DenseMatrix &output_mtx) -> void{
+
+    cplex.getValues(sol_y_ij, y_ij);
+    cplex.getValues(sol_z_ij, z_ij);
+
+    //Put zeroes everywhere, diagonal cannot be touched in next iteration
+    for(unsigned int i = 0; i< connectivity_matrix.rows(); i++){
+        for(unsigned int j = 0; j< connectivity_matrix.cols(); j++){
+            output_mtx(i,j) = 0.0;
+        }
+    }
+
+    for(unsigned int i= 0; i<connectivity_matrix.rows(); i++){
+        for(unsigned int j = i+1; j< connectivity_matrix.rows(); j++){
+
+            unsigned int mat_index_ij(getIndexUpperTriangle(i,j, connectivity_matrix.rows()));
+
+            output_mtx(i,j) = connectivity_matrix(i,j) - sol_y_ij[mat_index_ij];
+            output_mtx(j,i) = connectivity_matrix(j,i) - sol_y_ij[mat_index_ij];
+
+        }
+
+    }
 
 
 }
