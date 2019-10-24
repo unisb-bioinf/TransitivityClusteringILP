@@ -86,7 +86,19 @@ include_directories(
     ${EIGEN3_INCLUDE_DIR}
     "${CMAKE_SOURCE_DIR}"
     "${CMAKE_BINARY_DIR}"
+    /opt/cplex1262/cplex/include
+    /opt/cplex1262/concert/include
 )
+
+link_directories(
+        /opt/cplex1262/concert/lib/x86-64_linux/static_pic
+        /opt/cplex1262/cplex/lib/x86-64_linux/static_pic
+)
+
+
+set(LINK_FLAGS
+        "-pthread"
+        )
 
 add_library(clustLib SHARED
     macros.h
@@ -113,15 +125,25 @@ add_library(clustLib SHARED
     matrixTools.cpp
     matrixTools.h
     Statistic.h
+    ClusteringILP.cpp
+    ClusteringILP.h
 )
 
 COMPILE_FLAGS(clustLib)
 target_include_directories(clustLib PUBLIC "${CMAKE_BINARY_DIR}/libraries/" clustLib_INCLUDE)
-target_link_libraries(clustLib ${TRANSITIVITY_CLUSTERING_ILP_DEP_LIBRARIES}) 
+target_link_libraries(clustLib ${TRANSITIVITY_CLUSTERING_ILP_DEP_LIBRARIES}
+        ilocplex
+        concert
+        cplex
+        -pthread)
 
 add_executable(transitivityClusteringILP transitivityClusteringILP.cpp)
 COMPILE_FLAGS(transitivityClusteringILP)
-target_link_libraries(transitivityClusteringILP clustLib ${TRANSITIVITY_CLUSTERING_ILP_DEP_LIBRARIES})
+target_link_libraries(transitivityClusteringILP clustLib ${TRANSITIVITY_CLUSTERING_ILP_DEP_LIBRARIES}
+        ilocplex
+        concert
+        cplex
+        -pthread)
 
 set_target_properties(transitivityClusteringILP PROPERTIES
         INCLUDE_DIRS ${Boost_INCLUDE_DIRS}
