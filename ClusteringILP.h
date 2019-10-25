@@ -7,8 +7,9 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
-#include <DenseMatrixReader.h>
-#include <DenseMatrix.h>
+#include "DenseMatrixReader.h"
+#include "DenseMatrix.h"
+#include "macros.h"
 #define IL_STD
 #include <ilcplex/ilocplex.h>
 ILOSTLBEGIN
@@ -17,7 +18,7 @@ ILOSTLBEGIN
 #define ClusteringILP_ClusteringILP_H
 
 
-class ClusteringILP{
+class GT2_EXPORT ClusteringILP{
 
     bool valid_input;
     double threshold;
@@ -48,7 +49,7 @@ private:
 public:
 
     ClusteringILP(GeneTrail::DenseMatrix & similarity_matrix, double threshold, Metric sim_or_dist);
-    ~ClusteringILP();
+    ~ClusteringILP(){}
     //Forbidden until decided otherwise
     ClusteringILP(ClusteringILP & ilp) = delete; //copy ctor
     ClusteringILP(ClusteringILP && ilp) = delete; //move ctor

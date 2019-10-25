@@ -63,7 +63,7 @@ ClusteringILP::ClusteringILP(GeneTrail::DenseMatrix & similarity_matrix, double 
 
 auto ClusteringILP::getIndexUpperTriangle(unsigned int row, unsigned int column, unsigned int number_of_elements) -> unsigned int{
 
-    if(row == column || column> row|| row>= number_of_elements -1 || column>=number_of_elements){
+    if(row == column || column > row|| row >= number_of_elements -1 || column >= number_of_elements){
         throw std::out_of_range ("Index out of range: Only upper triangle matrix without diagonal is used");
     }
 
@@ -205,7 +205,7 @@ auto ClusteringILP::buildModel() -> bool{
                 obj += y_ij[mat_index_ij] * similarity_matrix(i,j);
             }
             else{
-                obj += y_ij[mat_index_ij] * (1.0/1.0 + similarity_matrix(i,j));
+                obj += y_ij[mat_index_ij] * (1.0/(1.0 + similarity_matrix(i,j)));
             }
         }
     }
