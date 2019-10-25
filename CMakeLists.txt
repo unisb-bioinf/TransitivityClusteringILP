@@ -147,4 +147,6 @@ target_link_libraries(transitivityClusteringILP clustLib ${TRANSITIVITY_CLUSTERI
 
 set_target_properties(transitivityClusteringILP PROPERTIES
         INCLUDE_DIRS ${Boost_INCLUDE_DIRS}
+	/opt/cplex1262/cplex/include
+	/opt/cplex1262/concert/include
 )

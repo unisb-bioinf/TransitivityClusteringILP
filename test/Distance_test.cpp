@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../Distance.h"
+#include <Distance.h>
 
 #include <iostream>
 #include <initializer_list>
