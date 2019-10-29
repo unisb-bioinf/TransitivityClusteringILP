@@ -2,7 +2,7 @@
 // Created by klenhof on 25.10.19.
 //
 
-
+#include <time.h>
 #include "ClusteringILP.h"
 
 ClusteringILP::ClusteringILP(GeneTrail::DenseMatrix & similarity_matrix, double threshold, Metric sim_or_dist): valid_input(true), threshold(threshold), sim_or_dist(sim_or_dist),
@@ -59,11 +59,23 @@ ClusteringILP::ClusteringILP(GeneTrail::DenseMatrix & similarity_matrix, double 
         std::cout << "Please specify whether you use a similarity or distance measure for clustering. " << std::endl;
     }
 
+    int null = 0;
+    for(unsigned int i = 0; i<connectivity_matrix.rows(); i++){
+        int row = 0;
+	for(unsigned int j = i+1; j<connectivity_matrix.cols(); j++){
+		row += connectivity_matrix(i,j);
+        }
+	if(row == 0) {
+		null += 1;
+	}
+    }
+
+    std::cout << "Null: " << null << std::endl;
+
 }
 
 auto ClusteringILP::getIndexUpperTriangle(unsigned int row, unsigned int column, unsigned int number_of_elements) -> unsigned int{
-
-    if(row == column || column > row|| row >= number_of_elements -1 || column >= number_of_elements){
+    if(column <= row || row >= number_of_elements -1 || column >= number_of_elements){
         throw std::out_of_range ("Index out of range: Only upper triangle matrix without diagonal is used");
     }
 
@@ -85,6 +97,7 @@ auto ClusteringILP::buildModel() -> bool{
         return false;
     }
 
+    std::cout << "INFO: Building model - Defining variables ..." << std::endl;
     //Defining y_ij and z_ij using only a 1D array structure
 
     unsigned int number_of_elements_whole_matrix(getIndexUpperTriangle(connectivity_matrix.rows()-2, connectivity_matrix.rows()-1, connectivity_matrix.rows())+1);
@@ -106,7 +119,9 @@ auto ClusteringILP::buildModel() -> bool{
         }
     }
 
+    std::cout << "INFO: Building model - Number of variables : " << 2 * number_of_elements_whole_matrix << std::endl;
 
+    std::cout << "INFO: Building model - Generating constraints on decision variables ..." << std::endl;
     //Constraints for y_ij and z_ij
     for(unsigned int i = 0; i< connectivity_matrix.rows(); i++){
 
@@ -128,8 +143,8 @@ auto ClusteringILP::buildModel() -> bool{
     }
 
 
+    std::cout << "INFO: Building model - Generation triangle constraints ..." << std::endl;  
     //Further constraints for z_ij
-
     for(unsigned int i = 0; i< connectivity_matrix.rows(); i++){
 
         for(unsigned int j = i+1; j< connectivity_matrix.rows(); j++){
@@ -192,6 +207,8 @@ auto ClusteringILP::buildModel() -> bool{
         }
     }
 
+    
+    std::cout << "INFO: Building model - Setting objective function ..." << std::endl;
 
     //Objective function
     IloExpr obj(env);
@@ -222,13 +239,19 @@ auto ClusteringILP::solveModel() -> void {
     //Running on testosterone?
     cplex.setParam(IloCplex::Threads, 32); //max number of threads
     cplex.setParam(IloCplex::ParallelMode, 1); //deterministic calculations enforced
-
+    cplex.setParam(IloCplex::Param::TimeLimit, 60 * 10);
+   
     bool feasible{false};
 
     try{
-
         feasible = cplex.solve();
-        std::cout << "ILP successfully solved" << std::endl;
+	if(cplex.getCplexStatus() == IloCplex::CplexStatus::AbortTimeLim) {
+		feasible = false;
+		std::cout << "Computation aborted due to time limit." << std::endl;
+	}
+	if(feasible) {
+        	std::cout << "ILP successfully solved" << std::endl;
+	}
 
     }
     catch(IloException & e){

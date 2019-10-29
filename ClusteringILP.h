@@ -34,8 +34,10 @@ private:
     IloModel model;
     IloCplex cplex;
 
+    // Variables
     IloNumVarArray y_ij;
-    IloNumVarArray z_ij;
+    IloNumVarArray z_ij;	
+    // Solution
     IloNumArray sol_y_ij;
     IloNumArray sol_z_ij;
 

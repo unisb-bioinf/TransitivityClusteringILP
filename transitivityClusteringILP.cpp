@@ -1,4 +1,8 @@
 #include <iostream>
+#include <fstream>
+#include <vector>
+#include <tuple>
+#include <string>
 
 #include <boost/program_options.hpp>
 
@@ -7,12 +11,15 @@
 #include "matrixTools.h"
 #include "MatrixIterator.h"
 #include "SimilarityMeasures.h"
+#include "ClusteringILP2.h"
+#include "ClusterEvaluation.h"
 
 using namespace GeneTrail;
 namespace bpo = boost::program_options;
 
 std::string matrix_ = "", similarity_measure_ = "";
 bool isDistanceMatrix;
+double similarity_threshold_;
 
 MatrixReaderOptions matrixOptions;
 
@@ -27,7 +34,8 @@ bool parseArguments(int argc, char* argv[])
 		("no-row-names,r", bpo::value<bool>(&matrixOptions.no_rownames)->default_value(false)->zero_tokens(), "Does the file contain row names.")
 		("no-col-names,c", bpo::value<bool>(&matrixOptions.no_colnames)->default_value(false)->zero_tokens(), "Does the file contain column names.")
 		("add-col-name,a", bpo::value<bool>(&matrixOptions.additional_colname)->default_value(false)->zero_tokens(), "File containing two lines specifying which rownames belong to which group.")
-		("similarity-measure,s", bpo::value<std::string>(&similarity_measure_)->default_value("spearman-correlation"), "Method used to compute pairwise similarities.");
+		("similarity-measure,s", bpo::value<std::string>(&similarity_measure_)->default_value("spearman-correlation"), "Method used to compute pairwise similarities.")
+		("similarity-threshold,t", bpo::value<double>(&similarity_threshold_)->default_value(0.95), "Threshold.");
 	try
 	{
 		bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
@@ -89,6 +97,18 @@ DenseMatrix compute_similarity_matrix(const DenseMatrix& matrix, const std::stri
 	}
 }
 
+std::vector<std::tuple<size_t, size_t, double>> extract_sorted_edges(const DenseMatrix& matrix) {
+	std::vector<std::tuple<size_t, size_t, double>> edges;
+	edges.reserve(matrix.rows()*matrix.rows()/2 - matrix.rows());
+	for(size_t i=0; i<matrix.rows(); ++i){
+                for(size_t j=i+1; j<matrix.rows(); ++j){
+			edges.emplace_back(std::make_tuple(i, j, matrix(i,j)));
+		}
+	}
+	std::sort(edges.begin(), edges.end(), [](const auto& a, const auto& b){return std::get<2>(a) > std::get<2>(b);});
+	return std::move(edges);
+}
+
 int main(int argc, char* argv[])
 {
 	if(!parseArguments(argc, argv))
@@ -104,17 +124,49 @@ int main(int argc, char* argv[])
 
 	std::cout << "INFO: Reading matrix ..." << std::endl;
 	DenseMatrix matrix(0,0);
-
+	DenseMatrix sim(0,0);
 	try {
 		matrix = readDenseMatrix(matrix_, matrixOptions);
 	} catch(const IOError& e) {
 		std::cerr << "ERROR: Could not open input data matrix for reading." << std::endl;
 		return -4;
 	}
+
 	
 	if(!isDistanceMatrix) {
-		std::cout << "INFO: Calculating similatiry matrix" << std::endl;
-		compute_similarity_matrix(matrix, similarity_measure_);
+		std::cout << "INFO: Calculating similatiry matrix ..." << std::endl;
+		sim = compute_similarity_matrix(matrix, similarity_measure_);
+	} else {
+		sim = readDenseMatrix(matrix_, matrixOptions);
+        } 
+
+	std::cout << "INFO: Extractin sorted edges ..." << std::endl;
+	std::vector<std::tuple<size_t, size_t, double>> edges = extract_sorted_edges(sim);
+	
+	std::cout << "INFO: Initializing ILP ..." << std::endl;
+	ClusteringILP2 ilp(sim, similarity_threshold_);
+	ilp.initializeModel();
+	
+	std::cout << "INFO: Extending ILP ..." << std::endl;
+	bool continue_computation = false;
+     	for(size_t i=0; i<edges.size(); i+=1) {
+		std::cout << "i: " << i+1 << " - " << std::get<2>(edges[i]) << std::endl;
+		// Extend and check if cycles are introduced
+		if(ilp.extendModel(edges, i, i+1)) continue;
+		// Solve model
+		continue_computation = ilp.solveModel(i+1);
+		if(!continue_computation) break;
+
+		// Save clustering
+		auto clusters = TransitivityClusteringILP::ClusterEvaluation::extract_clusters(ilp.getSolution());
+	        std::ofstream out;
+        	out.open("out_" +  std::to_string(i+1) + ".txt");
+	        for(size_t i=0; i<clusters.size(); ++i) {
+        	        for(size_t j=0; j<clusters[i].size(); ++j) {
+                	        out << sim.colName(clusters[i][j]) << "\t" << i << std::endl;
+                	}
+        	}
+        	out.close();
 	}
 
 	return 0;
