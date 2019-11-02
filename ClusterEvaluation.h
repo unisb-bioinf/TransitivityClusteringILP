@@ -52,6 +52,7 @@ std::vector<std::vector<size_t>> extract_clusters(const Matrix& matrix) {
 			if(matrix(i,j) == 1.0) {
 				cluster.emplace_back(j);
 				skip.emplace(j);
+				skip.emplace(i);
 			}
 		}
 		clusters.emplace_back(cluster);

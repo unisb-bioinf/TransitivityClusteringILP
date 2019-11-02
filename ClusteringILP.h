@@ -59,7 +59,7 @@ public:
 
     auto buildModel() -> bool;
     auto solveModel() -> void;
-    auto getSolution(GeneTrail::DenseMatrix & output_mtx) -> void;//output matrix must have the same dimensions as similarity matrix
+    auto getSolution() -> GeneTrail::DenseMatrix;//output matrix must have the same dimensions as similarity matrix
 };
 
 

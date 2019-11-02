@@ -5,10 +5,16 @@
 #include <time.h>
 #include "ClusteringILP.h"
 
-ClusteringILP::ClusteringILP(GeneTrail::DenseMatrix & similarity_matrix, double threshold, Metric sim_or_dist): valid_input(true), threshold(threshold), sim_or_dist(sim_or_dist),
-                                                                                                                similarity_matrix(similarity_matrix), connectivity_matrix(similarity_matrix),
-                                                                                                                model(env), cplex(env), y_ij(env), z_ij(env),
-                                                                                                                sol_y_ij(env), sol_z_ij(env){
+ClusteringILP::ClusteringILP(GeneTrail::DenseMatrix & similarity_matrix, double threshold, Metric sim_or_dist): 
+valid_input(true), 
+threshold(threshold), 
+sim_or_dist(sim_or_dist),                                                                                                             similarity_matrix(similarity_matrix), 
+connectivity_matrix(similarity_matrix),                                                                                                                model(env), 
+cplex(env), 
+y_ij(env), 
+z_ij(env),
+sol_y_ij(env), 
+sol_z_ij(env){
 
     if(similarity_matrix.rows() != similarity_matrix.cols()){
         valid_input = false;
@@ -265,7 +271,7 @@ auto ClusteringILP::solveModel() -> void {
         std::cout << e.what() << std::endl;
     }
 
-    if(!feasible){
+    /*if(!feasible){
         std::cout << "ILP was not feasible, additional information is written to Not_feasible.txt" << std::endl;
         std::ofstream output("Not_feasible.txt");
         output << "ILP was not feasible" << std::endl;
@@ -283,34 +289,27 @@ auto ClusteringILP::solveModel() -> void {
         //Solution as is by cplex
         cplex.writeSolution("Solution.sol");
 
-    }
-
+    }*/
 }
 
-auto ClusteringILP::getSolution(GeneTrail::DenseMatrix &output_mtx) -> void{
+auto ClusteringILP::getSolution() -> GeneTrail::DenseMatrix
+{
+    GeneTrail::DenseMatrix output_mtx(connectivity_matrix.rows(), connectivity_matrix.rows());
 
-    cplex.getValues(sol_y_ij, y_ij);
-    cplex.getValues(sol_z_ij, z_ij);
-
-    //Put zeroes everywhere, diagonal cannot be touched in next iteration
     for(unsigned int i = 0; i< connectivity_matrix.rows(); i++){
         for(unsigned int j = 0; j< connectivity_matrix.cols(); j++){
             output_mtx(i,j) = 0.0;
         }
+        output_mtx(i,i) = 1.0;
     }
 
     for(unsigned int i= 0; i<connectivity_matrix.rows(); i++){
-        for(unsigned int j = i+1; j< connectivity_matrix.rows(); j++){
-
+        for(unsigned int j = i+1; j<connectivity_matrix.rows(); j++){
             unsigned int mat_index_ij(getIndexUpperTriangle(i,j, connectivity_matrix.rows()));
-
-            output_mtx(i,j) = connectivity_matrix(i,j) - sol_y_ij[mat_index_ij];
-            output_mtx(j,i) = connectivity_matrix(j,i) - sol_y_ij[mat_index_ij];
-
+            output_mtx(i,j) = connectivity_matrix(i,j) - cplex.getValue(y_ij[mat_index_ij]);
+            output_mtx(j,i) = connectivity_matrix(j,i) - cplex.getValue(y_ij[mat_index_ij]);
         }
-
     }
-
-
+    return std::move(output_mtx);
 }
 

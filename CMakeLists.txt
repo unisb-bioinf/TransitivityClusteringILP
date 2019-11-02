@@ -125,8 +125,10 @@ add_library(clustLib SHARED
     matrixTools.cpp
     matrixTools.h
     Statistic.h
-    ClusteringILP2.cpp
-    ClusteringILP2.h
+    IterativeClusteringILP.cpp
+    IterativeClusteringILP.h
+    ClusteringILP.cpp
+    ClusteringILP.h
 )
 
 COMPILE_FLAGS(clustLib)

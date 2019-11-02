@@ -36,6 +36,17 @@ class DistanceCorrelation
         }
 };
 
+class SignedDistanceCorrelation
+{
+  public:
+        template <typename Iterator>
+        double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
+        {
+		double sign = GeneTrail::statistic::pearson_correlation<double>(first_begin, first_end, second_begin, second_end) < 0.0 ? -1.0  : 1.0;
+                return Distance::distance_correlation<double>(first_begin, first_end, second_begin, second_end) * sign;
+        }
+};
+
 class EuclideanDistance
 { 
   public:
@@ -43,7 +54,29 @@ class EuclideanDistance
         double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
         {       
                 double dist = Distance::euclidean_distance<double>(first_begin, first_end, second_begin, second_end);
-		return 1 / (1 + dist);
+		return 1.0 / (1.0 + dist);
+        }
+};
+
+class AngleDistance
+{ 
+  public:
+        template <typename Iterator>
+        double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
+        {       
+                double dist = Distance::angle_distance<double>(first_begin, first_end, second_begin, second_end);
+		return 1.0 / (1.0 + dist);
+        }
+};
+
+class NormalizedAngleDistance
+{ 
+  public:
+        template <typename Iterator>
+        double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
+        {       
+                double dist = Distance::normalized_angle_distance<double>(first_begin, first_end, second_begin, second_end);
+		return 1.0 / (1.0 + dist);
         }
 };
 
@@ -54,7 +87,18 @@ class ShiftedEuclideanDistanceForPoints
         double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
         {       
                 double dist = Distance::shifted_euclidean_distance_for_points<double>(first_begin, first_end, second_begin, second_end);
-		return 1 / (1 + dist);
+		return 1.0 / (1.0 + dist);
+        }
+};
+
+class ShiftedEuclideanDistanceForAngles
+{ 
+  public:
+        template <typename Iterator>
+        double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
+        {       
+                double dist = Distance::shifted_euclidean_distance_for_angles<double>(first_begin, first_end, second_begin, second_end);
+		return 1.0 / (1.0 + dist);
         }
 };
 
@@ -65,7 +109,7 @@ class ShiftedEuclideanDistanceForGradients
         double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
         {       
                 double dist = Distance::shifted_euclidean_distance_for_gradients<double>(first_begin, first_end, second_begin, second_end);
-		return 1 / (1 + dist);
+		return 1.0 / (1.0 + dist);
         }
 };
 
@@ -76,7 +120,7 @@ class ShiftedEuclideanDistanceForGradientsAndPoints
         double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
         {       
                 double dist = Distance::shifted_euclidean_distance_for_gradients_and_points<double>(first_begin, first_end, second_begin, second_end);
-		return 1 / (1 + dist);
+		return 1.0 / (1.0 + dist);
         }
 };
 
@@ -87,7 +131,7 @@ class DynamicTimeWarping
         double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
         {       
                 double dist = Distance::dynamic_time_warping<double>(first_begin, first_end, second_begin, second_end);
-		return 1 / (1 + dist);
+		return 1.0 / (1.0 + dist);
         }
 };
 
@@ -98,7 +142,7 @@ class DynamicTimeWarpingForGradients
         double compute_similarity(Iterator first_begin, Iterator first_end, Iterator second_begin, Iterator second_end)
         {       
                 double dist = Distance::dynamic_time_warping_for_gradients<double>(first_begin, first_end, second_begin, second_end);
-		return 1 / (1 + dist);
+		return 1.0 / (1.0 + dist);
         }
 };
 

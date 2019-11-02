@@ -128,6 +128,107 @@ shifted_euclidean_distance_for_points(InputIterator first_begin, InputIterator f
 	return std::sqrt(dist / n);
 }
 
+template <typename value_type>
+value_type theta(value_type x1, value_type x2, value_type y1, value_type y2)
+{
+	if(x1 == x2 && y1 == y2 && x1 == y1 && x2 == y2) {
+		return 0.0;
+	}
+	value_type cos_alpha = (x1*y1 + x2*y2)/(std::sqrt(x1*x1 + x2*x2) * std::sqrt(y1*y1 + y2*y2));
+	value_type theta = std::acos(cos_alpha) / 3.141593 * 180.0;
+	return theta;
+}
+
+
+/**
+ * This methods calculates the angles between ...
+ *
+ * @param first_begin  InputIterator corresponding to the start of the first group.
+ * @param first_end    InputIterator corresponding to the end of the first group.
+ * @param second_begin InputIterator corresponding to the start of the second group.
+ * @param second_end   InputIterator corresponding to the end of the second group.
+ *
+ * @return Distance
+ */
+template <typename value_type, typename InputIterator>
+std::vector<value_type> calculate_angles(InputIterator begin, InputIterator end)
+{
+	std::vector<value_type> angles;
+	angles.reserve(std::distance(begin, end));
+	for(; begin != (end-1); ++begin) {
+		angles.emplace_back(theta(*(begin), *(begin), *(begin), *(begin+1)));
+	}
+	return std::move(angles);
+}
+
+/**
+ * This methods implements the shifted euclidean distance.
+ *
+ * @param first_begin  InputIterator corresponding to the start of the first group.
+ * @param first_end    InputIterator corresponding to the end of the first group.
+ * @param second_begin InputIterator corresponding to the start of the second group.
+ * @param second_end   InputIterator corresponding to the end of the second group.
+ *
+ * @return Distance
+ */
+template <typename value_type, typename InputIterator>
+value_type
+angle_distance(InputIterator first_begin, InputIterator first_end,
+                     InputIterator second_begin, InputIterator second_end)
+{
+	value_type sum = 0.0;
+	for(size_t i=0; i<std::distance(first_begin, first_end)-1; ++i) {
+		double th = theta(1.0, *(first_begin+1+i) - *(first_begin+i), 1.0, *(second_begin+1+i) - *(second_begin+i));
+		sum += th;
+	}
+	return sum / (double)std::distance(first_begin, first_end);
+}
+
+/**
+ * This methods implements the shifted euclidean distance.
+ *
+ * @param first_begin  InputIterator corresponding to the start of the first group.
+ * @param first_end    InputIterator corresponding to the end of the first group.
+ * @param second_begin InputIterator corresponding to the start of the second group.
+ * @param second_end   InputIterator corresponding to the end of the second group.
+ *
+ * @return Distance
+ */
+template <typename value_type, typename InputIterator>
+value_type
+normalized_angle_distance(InputIterator first_begin, InputIterator first_end,
+                     InputIterator second_begin, InputIterator second_end)
+{
+	value_type sum = 0.0;
+	for(size_t i=0; i<std::distance(first_begin, first_end)-1; ++i) {
+		double fc1 = *(first_begin+1+i) - *(first_begin+i);
+		double fc2 = *(second_begin+1+i) - *(second_begin+i);
+		double th = theta(1.0, fc1, 1.0, fc2);
+		sum += th / (0.25 + std::abs(fc1) + std::abs(fc2));
+	}
+	return sum / (double)std::distance(first_begin, first_end);
+}
+
+/**
+ * This methods implements the shifted euclidean distance.
+ *
+ * @param first_begin  InputIterator corresponding to the start of the first group.
+ * @param first_end    InputIterator corresponding to the end of the first group.
+ * @param second_begin InputIterator corresponding to the start of the second group.
+ * @param second_end   InputIterator corresponding to the end of the second group.
+ *
+ * @return Distance
+ */
+template <typename value_type, typename InputIterator>
+value_type
+shifted_euclidean_distance_for_angles(InputIterator first_begin, InputIterator first_end,
+                     InputIterator second_begin, InputIterator second_end)
+{
+	std::vector<value_type> ang1 = calculate_angles<value_type>(first_begin, first_end);
+	std::vector<value_type> ang2 = calculate_angles<value_type>(second_begin, second_end);
+	return shifted_euclidean_distance_for_points<value_type>(ang1.begin(), ang1.end(), ang2.begin(), ang2.end());
+}
+
 /**
  * This methods implements the shifted euclidean distance.
  *
@@ -319,7 +420,7 @@ value_type dynamic_time_warping(InputIterator first_begin, InputIterator first_e
 	DTW(0,0) = 0.0;
 	for(size_t i=0; i<x.size(); ++i) {
                 for(size_t j=0; j<y.size(); ++j) {
-                        double cost = abs(x[i]-y[j]);
+                        double cost = std::abs(x[i]-y[j]);
                         if(i == 0 && j == 0) continue;
                         if(i == 0) {
                                 DTW(i,j) = cost + DTW(i, j-1);
@@ -353,7 +454,7 @@ value_type dynamic_time_warping_for_gradients(InputIterator first_begin, InputIt
 	DTW(0,0) = 0.0;
 	for(size_t i=0; i<x.size()-1; ++i) {
                 for(size_t j=0; j<y.size()-1; ++j) {
-                        double cost = abs((x[i+1]-x[i])-(y[j+1]-y[j]));
+                        double cost = std::abs((x[i+1]-x[i])-(y[j+1]-y[j]));
                         if(i == 0 && j == 0) continue;
                         if(i == 0) {
                                 DTW(i,j) = cost + DTW(i, j-1);
