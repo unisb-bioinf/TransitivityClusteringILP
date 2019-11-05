@@ -6,10 +6,12 @@
 #include <time.h>
 #include "IterativeClusteringILP.h"
 
-IterativeClusteringILP::IterativeClusteringILP(GeneTrail::DenseMatrix & similarity_matrix, double threshold)
-: threshold(threshold),
+IterativeClusteringILP::IterativeClusteringILP(GeneTrail::DenseMatrix & similarity_matrix, size_t cplex_threads, size_t cplex_time_limit)
+:
 similarity_matrix(similarity_matrix), 
 connectivity_matrix(similarity_matrix),
+cplex_threads(cplex_threads),
+cplex_time_limit(cplex_time_limit),
 model(env), 
 cplex(env), 
 obj_expr(env),
@@ -49,6 +51,7 @@ auto IterativeClusteringILP::initializeModel() -> bool{
     constraints_yij = IloExtractableArray(env, number_of_elements_whole_matrix);
     constraints_zij = IloExtractableArray(env, number_of_elements_whole_matrix);
     isVariableUsed = std::vector<bool>(number_of_elements_whole_matrix, false);
+    isFixed = std::vector<bool>(number_of_elements_whole_matrix, false);
 
     for(unsigned int i = 0; i< connectivity_matrix.rows()-1; i++){
         for(unsigned int j = i+1; j< connectivity_matrix.rows(); j++){
@@ -105,9 +108,9 @@ auto IterativeClusteringILP::initializeModel() -> bool{
     cplex.extract(model);
 
     //Running on testosterone?
-    cplex.setParam(IloCplex::Threads, 32); // max number of threads
+    cplex.setParam(IloCplex::Threads, cplex_threads); // max number of threads
     cplex.setParam(IloCplex::ParallelMode, 1); // deterministic calculations enforced
-    cplex.setParam(IloCplex::Param::TimeLimit, 60 * 10); // Set time limit
+    cplex.setParam(IloCplex::Param::TimeLimit, 60 * cplex_time_limit); // Set time limit
     //cplex.setParam(IloCplex::RootAlg, IloCplex::Dual);
 
     return true;
@@ -247,7 +250,24 @@ auto IterativeClusteringILP::updateObjectiveFunction(size_t i, size_t j) -> bool
     return true;
 }
 
-auto IterativeClusteringILP::extendModel(const std::vector<std::tuple<size_t, size_t, double>>& edges, size_t begin, size_t end) -> bool {
+auto IterativeClusteringILP::fixPreviousSolution() -> void {
+    for(unsigned int i= 0; i<connectivity_matrix.rows(); i++){
+        for(unsigned int j = i+1; j<connectivity_matrix.rows(); j++){
+            unsigned int mat_index_ij(getIndexUpperTriangle(i,j, connectivity_matrix.rows()));
+            if(!isVariableUsed[mat_index_ij]) continue;
+            if(isFixed[mat_index_ij]) continue;
+            isFixed[mat_index_ij] = connectivity_matrix(i,j) - cplex.getValue(y_ij[mat_index_ij]);
+            if(isFixed[mat_index_ij]) {
+                IloExpr expr(env);
+                expr += z_ij[mat_index_ij];
+                IloConstraint cons = expr == isFixed[mat_index_ij];
+                model.add(cons);
+            }
+        }
+    }
+}
+
+auto IterativeClusteringILP::extendModel(const std::vector<std::tuple<size_t, size_t, double>>& edges, size_t begin, size_t end, bool fixSolution) -> bool {
     bool keepExtending = true;
     for(size_t i = begin; i<end; ++i) {
         connectivity_matrix(std::get<0>(edges[i]), std::get<1>(edges[i])) = 1;
@@ -255,6 +275,7 @@ auto IterativeClusteringILP::extendModel(const std::vector<std::tuple<size_t, si
         addVariableConstraints(std::get<1>(edges[i]), std::get<0>(edges[i]));
         //updateVariableConstraints(std::get<0>(edges[i]), std::get<1>(edges[i]));
         keepExtending = updateCycleConstraints(std::get<0>(edges[i]), std::get<1>(edges[i])) ? keepExtending : false;
+	if(fixSolution) fixPreviousSolution();
         updateObjectiveFunction(std::get<0>(edges[i]), std::get<1>(edges[i]));
     }
 

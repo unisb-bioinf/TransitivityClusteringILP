@@ -17,11 +17,11 @@ ILOSTLBEGIN
 
 class GT2_EXPORT IterativeClusteringILP {
 private:
-
-    double threshold;
-
     GeneTrail::DenseMatrix similarity_matrix;
     GeneTrail::DenseMatrix connectivity_matrix;
+
+    size_t cplex_threads;
+    size_t cplex_time_limit;
 
     IloEnv env;
     IloModel model;
@@ -38,6 +38,7 @@ private:
 
     // Check if variable is already set
     std::vector<bool> isVariableUsed;
+    std::vector<bool> isFixed;
 
     // Save all constraints in order to remove them later
     IloExtractableArray constraints_yij;
@@ -50,14 +51,15 @@ private:
 
 public:
 
-    explicit IterativeClusteringILP(GeneTrail::DenseMatrix & similarity_matrix, double threshold);
+    explicit IterativeClusteringILP(GeneTrail::DenseMatrix & similarity_matrix, size_t cplex_threads, size_t cplex_time_limit);
 
     auto initializeModel() -> bool;
     auto addVariableConstraints(size_t i, size_t j) -> bool;
     auto updateCycleConstraints(size_t i, size_t j, size_t k) -> bool;
     auto updateCycleConstraints(size_t i, size_t j) -> bool;
     auto updateObjectiveFunction(size_t i, size_t j) -> bool;
-    auto extendModel(const std::vector<std::tuple<size_t, size_t, double>>& edges, size_t begin, size_t end) -> bool;
+    auto fixPreviousSolution() -> void;
+    auto extendModel(const std::vector<std::tuple<size_t, size_t, double>>& edges, size_t begin, size_t end, bool fixSolution) -> bool;
     
     auto solveModel() -> bool;
     
