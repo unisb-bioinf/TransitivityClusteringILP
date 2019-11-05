@@ -110,7 +110,7 @@ auto IterativeClusteringILP::initializeModel() -> bool{
     //Running on testosterone?
     cplex.setParam(IloCplex::Threads, cplex_threads); // max number of threads
     cplex.setParam(IloCplex::ParallelMode, 1); // deterministic calculations enforced
-    cplex.setParam(IloCplex::Param::TimeLimit, 60 * cplex_time_limit); // Set time limit
+    if(cplex_time_limit > 0) cplex.setParam(IloCplex::Param::TimeLimit, 60 * cplex_time_limit); // Set time limit
     //cplex.setParam(IloCplex::RootAlg, IloCplex::Dual);
 
     return true;
