@@ -174,10 +174,10 @@ std::vector<value_type> calculate_angles(InputIterator begin, InputIterator end)
 template <typename value_type, typename InputIterator>
 value_type
 angle_distance(InputIterator first_begin, InputIterator first_end,
-                     InputIterator second_begin, InputIterator second_end)
+                     InputIterator second_begin, InputIterator)
 {
 	value_type sum = 0.0;
-	for(size_t i=0; i<std::distance(first_begin, first_end)-1; ++i) {
+	for(auto i=0; i<std::distance(first_begin, first_end)-1; ++i) {
 		double th = theta(1.0, *(first_begin+1+i) - *(first_begin+i), 1.0, *(second_begin+1+i) - *(second_begin+i));
 		sum += th;
 	}
@@ -197,14 +197,16 @@ angle_distance(InputIterator first_begin, InputIterator first_end,
 template <typename value_type, typename InputIterator>
 value_type
 normalized_angle_distance(InputIterator first_begin, InputIterator first_end,
-                     InputIterator second_begin, InputIterator second_end)
+                     InputIterator second_begin, InputIterator)
 {
 	value_type sum = 0.0;
-	for(size_t i=0; i<std::distance(first_begin, first_end)-1; ++i) {
+	for(auto i=0; i<std::distance(first_begin, first_end)-1; ++i) {
 		double fc1 = *(first_begin+1+i) - *(first_begin+i);
 		double fc2 = *(second_begin+1+i) - *(second_begin+i);
 		double th = theta(1.0, fc1, 1.0, fc2);
-		sum += th / (0.25 + std::abs(fc1) + std::abs(fc2));
+		double th1 = theta(1.0, 0.0, 1.0, fc1);
+		double th2 = theta(1.0, 0.0, 1.0, fc2);
+		sum += th / (th1 + th2);
 	}
 	return sum / (double)std::distance(first_begin, first_end);
 }
