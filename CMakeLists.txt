@@ -81,18 +81,22 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 # Build library and executables
 ####################################################################################################
 
+if(NOT CPLEX_SRC_DIR)
+    message(FATAL_ERROR "CPLEX_SRC_DIR not set!")
+endif()
+
 include_directories(
     ${Boost_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIR}
     "${CMAKE_SOURCE_DIR}"
     "${CMAKE_BINARY_DIR}"
-    /opt/cplex1262/cplex/include
-    /opt/cplex1262/concert/include
+    "${CPLEX_SRC_DIR}/cplex/include"
+    "${CPLEX_SRC_DIR}/concert/include"
 )
 
 link_directories(
-        /opt/cplex1262/concert/lib/x86-64_linux/static_pic
-        /opt/cplex1262/cplex/lib/x86-64_linux/static_pic
+	"${CPLEX_SRC_DIR}/concert/lib/x86-64_linux/static_pic"
+	"${CPLEX_SRC_DIR}/cplex/lib/x86-64_linux/static_pic"
 )
 
 
@@ -149,6 +153,6 @@ target_link_libraries(transitivityClusteringILP clustLib ${TRANSITIVITY_CLUSTERI
 
 set_target_properties(transitivityClusteringILP PROPERTIES
         INCLUDE_DIRS ${Boost_INCLUDE_DIRS}
-	/opt/cplex1262/cplex/include
-	/opt/cplex1262/concert/include
+	"${CPLEX_SRC_DIR}/cplex/include"
+	"${CPLEX_SRC_DIR}/concert/include"
 )

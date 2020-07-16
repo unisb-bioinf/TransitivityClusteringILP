@@ -1,6 +1,22 @@
-//
-// Created by klenhof on 25.10.19.
-//
+/** 
+ * Copyright (C) 2020 Tim Kehl <tkehl@bioinf.uni-sb.de>
+ *                    Kerstin Lenhof <klenhof@bioinf.uni-sb.de>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the Lesser GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * Lesser GNU General Public License for more details.
+ *
+ * You should have received a copy of the Lesser GNU General Public
+ * License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #include<string>
 #include <time.h>
@@ -10,6 +26,7 @@ IterativeClusteringILP::IterativeClusteringILP(GeneTrail::DenseMatrix & similari
 :
 similarity_matrix(similarity_matrix), 
 connectivity_matrix(similarity_matrix),
+output_matrix(similarity_matrix),
 cplex_threads(cplex_threads),
 cplex_time_limit(cplex_time_limit),
 model(env), 
@@ -20,9 +37,17 @@ y_ij(env),
 z_ij(env),
 sol_y_ij(env), 
 sol_z_ij(env),
+hasSolution(false),
 constraints_yij(env),
 constraints_zij(env)
-{}
+{
+    for(unsigned int i = 0; i< output_matrix.rows(); i++){
+        for(unsigned int j = 0; j< output_matrix.cols(); j++){
+            output_matrix(i,j) = 0.0;
+        }
+        output_matrix(i,i) = 1.0;
+    }
+}
 
 auto IterativeClusteringILP::getIndexUpperTriangle(unsigned int row, unsigned int column, unsigned int number_of_elements) -> unsigned int{
     if(column < row) std::swap(row, column);
@@ -111,6 +136,7 @@ auto IterativeClusteringILP::initializeModel() -> bool{
     cplex.setParam(IloCplex::Threads, cplex_threads); // max number of threads
     cplex.setParam(IloCplex::ParallelMode, 1); // deterministic calculations enforced
     if(cplex_time_limit > 0) cplex.setParam(IloCplex::Param::TimeLimit, 60 * cplex_time_limit); // Set time limit
+    cplex.setOut(env.getNullStream());
     //cplex.setParam(IloCplex::RootAlg, IloCplex::Dual);
 
     return true;
@@ -256,7 +282,7 @@ auto IterativeClusteringILP::fixPreviousSolution() -> void {
             unsigned int mat_index_ij(getIndexUpperTriangle(i,j, connectivity_matrix.rows()));
             if(!isVariableUsed[mat_index_ij]) continue;
             if(isFixed[mat_index_ij]) continue;
-            isFixed[mat_index_ij] = connectivity_matrix(i,j) - cplex.getValue(y_ij[mat_index_ij]);
+            isFixed[mat_index_ij] = output_matrix(i,j);
             if(isFixed[mat_index_ij]) {
                 IloExpr expr(env);
                 expr += z_ij[mat_index_ij];
@@ -269,13 +295,15 @@ auto IterativeClusteringILP::fixPreviousSolution() -> void {
 
 auto IterativeClusteringILP::extendModel(const std::vector<std::tuple<size_t, size_t, double>>& edges, size_t begin, size_t end, bool fixSolution) -> bool {
     bool keepExtending = true;
+    if(fixSolution) {
+	fixPreviousSolution();
+    }
     for(size_t i = begin; i<end; ++i) {
         connectivity_matrix(std::get<0>(edges[i]), std::get<1>(edges[i])) = 1;
         connectivity_matrix(std::get<1>(edges[i]), std::get<0>(edges[i])) = 1;
         addVariableConstraints(std::get<1>(edges[i]), std::get<0>(edges[i]));
         //updateVariableConstraints(std::get<0>(edges[i]), std::get<1>(edges[i]));
         keepExtending = updateCycleConstraints(std::get<0>(edges[i]), std::get<1>(edges[i])) ? keepExtending : false;
-	if(fixSolution) fixPreviousSolution();
         updateObjectiveFunction(std::get<0>(edges[i]), std::get<1>(edges[i]));
     }
 
@@ -292,6 +320,7 @@ auto IterativeClusteringILP::solveModel() -> bool {
         feasible = false;
         std::cout << "INFO: Computation aborted due to time limit." << std::endl;
     }
+
     if(feasible) {
             std::cout << "INFO: ILP successfully solved." << std::endl;
     }
@@ -313,23 +342,14 @@ auto IterativeClusteringILP::solveModel() -> bool {
 
 auto IterativeClusteringILP::getSolution() -> GeneTrail::DenseMatrix
 {
-    GeneTrail::DenseMatrix output_mtx(connectivity_matrix.rows(), connectivity_matrix.rows());
-
-    for(unsigned int i = 0; i< connectivity_matrix.rows(); i++){
-        for(unsigned int j = 0; j< connectivity_matrix.cols(); j++){
-            output_mtx(i,j) = 0.0;
-        }
-        output_mtx(i,i) = 1.0;
-    }
-
     for(unsigned int i= 0; i<connectivity_matrix.rows(); i++){
         for(unsigned int j = i+1; j<connectivity_matrix.rows(); j++){
             unsigned int mat_index_ij(getIndexUpperTriangle(i,j, connectivity_matrix.rows()));
             if(!isVariableUsed[mat_index_ij]) continue;
-            output_mtx(i,j) = connectivity_matrix(i,j) - cplex.getValue(y_ij[mat_index_ij]);
-            output_mtx(j,i) = connectivity_matrix(j,i) - cplex.getValue(y_ij[mat_index_ij]);
+            output_matrix(i,j) = connectivity_matrix(i,j) - cplex.getValue(y_ij[mat_index_ij]);
+            output_matrix(j,i) = connectivity_matrix(j,i) - cplex.getValue(y_ij[mat_index_ij]);
         }
     }
-    return std::move(output_mtx);
+    return output_matrix;
 }
 

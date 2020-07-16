@@ -1,8 +1,23 @@
-/*
- * GeneTrail2 - An efficient library for interpreting genetic data
- * Copyright (C) 2019 Tim Kehl tkehl@bioinf.uni-sb.de>
+/** 
+ * Copyright (C) 2020 Tim Kehl <tkehl@bioinf.uni-sb.de>
+ *                    Kerstin Lenhof <klenhof@bioinf.uni-sb.de>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the Lesser GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * Lesser GNU General Public License for more details.
+ *
+ * You should have received a copy of the Lesser GNU General Public
+ * License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
 #ifndef TRANSITIVITY_CLUSTERING_ILP_STATISTIC_H
 #define TRANSITIVITY_CLUSTERING_ILP_STATISTIC_H
 
@@ -128,6 +143,34 @@ shifted_euclidean_distance_for_points(InputIterator first_begin, InputIterator f
 	return std::sqrt(dist / n);
 }
 
+/**
+ * This methods implements the euclidean distance for gradients.
+ *
+ * @param first_begin  InputIterator corresponding to the start of the first group.
+ * @param first_end    InputIterator corresponding to the end of the first group.
+ * @param second_begin InputIterator corresponding to the start of the second group.
+ * @param second_end   InputIterator corresponding to the end of the second group.
+ *
+ * @return Distance
+ */
+template <typename value_type, typename InputIterator>
+value_type
+euclidean_distance_for_gradients(InputIterator first_begin, InputIterator first_end,
+                     InputIterator second_begin, InputIterator second_end)
+{
+        std::vector<value_type> fc_1;
+        fc_1.reserve(std::distance(first_begin, first_end));
+        for(; first_begin != (first_end-1); ++first_begin) {
+                fc_1.emplace_back(*(first_begin+1) - *first_begin);
+        }
+        std::vector<value_type> fc_2;
+        fc_2.reserve(std::distance(second_begin, second_end));
+        for(; second_begin != (second_end-1); ++second_begin) {
+                fc_2.emplace_back(*(second_begin+1) - *second_begin);
+        }
+        return euclidean_distance<value_type>(fc_1.begin(), fc_1.end(), fc_2.begin(), fc_2.end());
+}
+
 template <typename value_type>
 value_type theta(value_type x1, value_type x2, value_type y1, value_type y2)
 {
@@ -206,7 +249,7 @@ normalized_angle_distance(InputIterator first_begin, InputIterator first_end,
 		double th = theta(1.0, fc1, 1.0, fc2);
 		double th1 = theta(1.0, 0.0, 1.0, fc1);
 		double th2 = theta(1.0, 0.0, 1.0, fc2);
-		sum += th / (th1 + th2);
+		sum += th / (1.0 + th1 + th2);
 	}
 	return sum / (double)std::distance(first_begin, first_end);
 }

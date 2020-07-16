@@ -1,3 +1,23 @@
+/** 
+ * Copyright (C) 2020 Tim Kehl <tkehl@bioinf.uni-sb.de>
+ *                    Kerstin Lenhof <klenhof@bioinf.uni-sb.de>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the Lesser GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * Lesser GNU General Public License for more details.
+ *
+ * You should have received a copy of the Lesser GNU General Public
+ * License along with this program.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -104,6 +124,8 @@ DenseMatrix compute_similarity_matrix(const DenseMatrix& matrix, const std::stri
         return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::SignedDistanceCorrelation()));
     } else if (similatity_measure == "euclidean-distance") {
         return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::EuclideanDistance()));
+    } else if (similatity_measure == "euclidean-distance-for-gradients") {
+        return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::EuclideanDistanceForGradients()));
     } else if (similatity_measure == "shifted-euclidean-distance-for-points") {
         return std::move(compute_similarity_matrix(matrix, TransitivityClusteringILP::ShiftedEuclideanDistanceForPoints()));
     } else if (similatity_measure == "shifted-euclidean-distance-for-gradients") {
