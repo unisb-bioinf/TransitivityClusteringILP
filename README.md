@@ -7,16 +7,23 @@ In out implementation, we use slightly different constaints that allow us to cal
 # Requirements 
 
 C++ Compiler (C++14 ready)
+
 Boost (Version 1.6 or higher)
+
 Eigen (Version 4 or higher)
+
 CPLEX (Version 1262)
+
 GTEST
 
 # Installation
 
 mkdir build
+
 cd build
+
 cmake .. -DCPLEX_SRC_DIR=$PATH
+
 make
 
 # Usage
